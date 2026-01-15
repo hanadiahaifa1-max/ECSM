@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { Search, Trash2, Pencil, CalendarDays, Image } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -57,12 +57,13 @@ export function ActivityTableView({
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const generatedUrlsRef = useRef<Set<string>>(new Set());
   const itemsPerPage = 10;
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
 
-  // Generate signed URLs for attachments
+  // Temporarily disable signed URLs generation to prevent stack limit error
   useEffect(() => {
     const generateSignedUrls = async () => {
       const urlMap: Record<string, string> = {};
@@ -87,8 +88,13 @@ export function ActivityTableView({
         setSignedUrls(prev => ({ ...prev, ...urlMap }));
       }
     };
-    generateSignedUrls();
-  }, [data]);
+
+    // Only generate URLs if data has changed and we have items with attachments
+    const hasNewAttachments = data.some(item => item.attachment_url && !signedUrls[item.id]);
+    if (hasNewAttachments) {
+      generateSignedUrls();
+    }
+  }, [data, signedUrls]);
 
   // Get unique close months from data for filter
   const uniqueCloseMonths = useMemo(() => {
@@ -252,7 +258,13 @@ export function ActivityTableView({
                         <ActivityFormDialog
                           mode="edit"
                           activityPlan={item}
-                          onSubmit={(data) => onUpdate(item.id, data)}
+                          onSubmit={async (data) => {
+                            const result = await onUpdate(item.id, data);
+                            if (result.error) {
+                              console.error("Update error:", result.error);
+                            }
+                            return result;
+                          }}
                           trigger={
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Pencil className="h-4 w-4" />

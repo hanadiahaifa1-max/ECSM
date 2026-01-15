@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,17 +51,17 @@ import { AM_NAMES } from "@/types/pipeline";
 import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
-  se_name: z.string().min(1, "SE Name is required"),
-  account_name: z.string().min(1, "Account Name is required"),
-  opportunity_name: z.string().min(1, "Opportunity Name is required"),
-  activity_date: z.date({ required_error: "Date is required" }),
-  am_name: z.string().min(1, "AM Name is required"),
-  agenda: z.string().min(1, "Agenda is required"),
-  solution_offer: z.string().min(1, "Solution Offer is required"),
-  contract_value: z.coerce.number().min(1, "Contract Value is required"),
-  est_close_month: z.string().min(1, "Est. Close Month is required"),
-  output: z.string().min(1, "Output is required"),
-  next_action: z.string().min(1, "Next Action is required"),
+  se_name: z.string().optional(),
+  account_name: z.string().optional(),
+  opportunity_name: z.string().optional(),
+  activity_date: z.date().optional(),
+  am_name: z.string().optional(),
+  agenda: z.string().optional(),
+  solution_offer: z.string().optional(),
+  contract_value: z.coerce.number().optional(),
+  est_close_month: z.string().optional(),
+  output: z.string().optional(),
+  next_action: z.string().optional(),
   create_pipeline: z.boolean().default(false),
   existing_pipeline_id: z.string().optional(),
 });
@@ -94,7 +94,7 @@ export function ActivityFormDialog({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      se_name: user?.user_metadata?.full_name || "",
+      se_name: "",
       account_name: "",
       opportunity_name: "",
       activity_date: new Date(),
@@ -114,62 +114,33 @@ export function ActivityFormDialog({
   const selectedPipelineId = form.watch("existing_pipeline_id");
 
   // Fetch existing pipeline entries - only user's own entries
+  const fetchPipelines = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("pipeline_entries")
+      .select("id, opportunity_name, account_name, am_name, close_month, contract_value")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setPipelineEntries(data);
+  }, [user?.id]);
+
   useEffect(() => {
-    const fetchPipelines = async () => {
-      if (!user?.id) return;
-      const { data } = await supabase
-        .from("pipeline_entries")
-        .select("id, opportunity_name, account_name, am_name, close_month, contract_value")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (data) setPipelineEntries(data);
-    };
     if (open) fetchPipelines();
-  }, [open, user?.id]);
+  }, [open, fetchPipelines]);
 
   useEffect(() => {
     if (mode === "edit" && activityPlan) {
-      form.reset({
-        se_name: activityPlan.se_name,
-        account_name: activityPlan.account_name || "",
-        opportunity_name: activityPlan.opportunity_name || "",
-        activity_date: activityPlan.activity_date ? new Date(activityPlan.activity_date) : new Date(),
-        am_name: activityPlan.am_name || "",
-        agenda: activityPlan.agenda || "",
-        solution_offer: activityPlan.solution_offer || "",
-        contract_value: activityPlan.contract_value || 0,
-        est_close_month: activityPlan.est_close_month || "",
-        output: activityPlan.output || "",
-        next_action: activityPlan.next_action || "",
-        create_pipeline: false,
-        existing_pipeline_id: activityPlan.pipeline_entry_id || "",
-      });
       setExistingAttachment(activityPlan.attachment_url || null);
       setAttachmentPreview(activityPlan.attachment_url || null);
     } else if (mode === "add") {
-      form.reset({
-        se_name: user?.user_metadata?.full_name || "",
-        account_name: "",
-        opportunity_name: "",
-        activity_date: new Date(),
-        am_name: "",
-        agenda: "",
-        solution_offer: "",
-        contract_value: 0,
-        est_close_month: "",
-        output: "",
-        next_action: "",
-        create_pipeline: false,
-        existing_pipeline_id: "",
-      });
       setAttachmentFile(null);
       setAttachmentPreview(null);
       setExistingAttachment(null);
     }
-  }, [mode, activityPlan, form, user, open]);
+  }, [mode, activityPlan, open]);
 
   // Auto-fill account, opportunity, AM name, close month, and contract value when selecting existing pipeline
-  useEffect(() => {
+  const autoFillPipeline = useCallback(() => {
     if (selectedPipelineId && !createPipeline) {
       const selected = pipelineEntries.find(p => p.id === selectedPipelineId);
       if (selected) {
@@ -181,6 +152,10 @@ export function ActivityFormDialog({
       }
     }
   }, [selectedPipelineId, createPipeline, pipelineEntries, form]);
+
+  useEffect(() => {
+    autoFillPipeline();
+  }, [autoFillPipeline]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -207,7 +182,7 @@ export function ActivityFormDialog({
     setAttachmentPreview(existingAttachment);
   };
 
-  const uploadAttachment = async (): Promise<string | null> => {
+  const uploadAttachment = useCallback(async (): Promise<string | null> => {
     if (!attachmentFile || !user) return existingAttachment;
 
     const fileExt = attachmentFile.name.split(".").pop();
@@ -221,9 +196,9 @@ export function ActivityFormDialog({
 
     // Store the file path (not the full URL) so we can generate signed URLs when needed
     return fileName;
-  };
+  }, [attachmentFile, user, existingAttachment]);
 
-  const handleSubmit = async (data: FormData) => {
+  const handleSubmit = useCallback(async (data: FormData) => {
     setIsSubmitting(true);
     try {
       let pipelineEntryId: string | null = data.existing_pipeline_id || null;
@@ -285,10 +260,13 @@ export function ActivityFormDialog({
         title: mode === "add" ? "Activity Added" : "Activity Updated",
         description: `Activity plan has been ${mode === "add" ? "created" : "updated"} successfully.`,
       });
+
+      // Reset form and close dialog
       setOpen(false);
-      form.reset();
       setAttachmentFile(null);
       setAttachmentPreview(null);
+      setExistingAttachment(null);
+
     } catch (err) {
       toast({
         title: "Error",
@@ -298,13 +276,13 @@ export function ActivityFormDialog({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [existingAttachment, attachmentFile, user, onSubmit, mode, toast]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button>
+          <Button onClick={() => console.log("Button clicked")}>
             {mode === "add" ? (
               <>
                 <Plus className="mr-2 h-4 w-4" />
@@ -326,7 +304,10 @@ export function ActivityFormDialog({
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={(e) => {
+            console.log("Form submitted");
+            form.handleSubmit(handleSubmit)(e);
+          }} className="space-y-4">
             {/* Create Pipeline Checkbox - At Top */}
             {mode === "add" && (
               <FormField

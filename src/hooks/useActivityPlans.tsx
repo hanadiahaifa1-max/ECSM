@@ -41,6 +41,10 @@ export function useActivityPlans() {
   useEffect(() => {
     if (!user) return;
 
+    const handleRealtimeUpdate = () => {
+      fetchActivityPlans();
+    };
+
     const channel = supabase
       .channel("activity_plans_changes")
       .on(
@@ -50,9 +54,7 @@ export function useActivityPlans() {
           schema: "public",
           table: "activity_plans",
         },
-        () => {
-          fetchActivityPlans();
-        }
+        handleRealtimeUpdate
       )
       .subscribe();
 
