@@ -46,22 +46,23 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { ActivityPlan } from "@/types/activityPlan";
 import { AM_NAMES } from "@/types/pipeline";
 import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   se_name: z.string().optional(),
-  account_name: z.string().optional(),
-  opportunity_name: z.string().optional(),
-  activity_date: z.date().optional(),
-  am_name: z.string().optional(),
-  agenda: z.string().optional(),
-  solution_offer: z.string().optional(),
-  contract_value: z.coerce.number().optional(),
-  est_close_month: z.string().optional(),
-  output: z.string().optional(),
-  next_action: z.string().optional(),
+  account_name: z.string().min(1, "Account Name is required"),
+  opportunity_name: z.string().min(1, "Opportunity Name is required"),
+  activity_date: z.date({ required_error: "Activity Date is required" }),
+  am_name: z.string().min(1, "AM Name is required"),
+  agenda: z.string().min(1, "Agenda is required"),
+  solution_offer: z.string().min(1, "Solution Offer is required"),
+  contract_value: z.coerce.number().min(0, "Contract Value is required"),
+  est_close_month: z.string().min(1, "Estimated Close Month is required"),
+  output: z.string().min(1, "Output is required"),
+  next_action: z.string().min(1, "Next Action is required"),
   create_pipeline: z.boolean().default(false),
   existing_pipeline_id: z.string().optional(),
 });
@@ -90,6 +91,7 @@ export function ActivityFormDialog({
   const [existingAttachment, setExistingAttachment] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -136,8 +138,12 @@ export function ActivityFormDialog({
       setAttachmentFile(null);
       setAttachmentPreview(null);
       setExistingAttachment(null);
+      // Auto-fill SE name with user's full name
+      if (profile?.full_name) {
+        form.setValue("se_name", profile.full_name);
+      }
     }
-  }, [mode, activityPlan, open]);
+  }, [mode, activityPlan, open, profile?.full_name, form]);
 
   // Auto-fill account, opportunity, AM name, close month, and contract value when selecting existing pipeline
   const autoFillPipeline = useCallback(() => {
@@ -276,7 +282,7 @@ export function ActivityFormDialog({
     } finally {
       setIsSubmitting(false);
     }
-  }, [existingAttachment, attachmentFile, user, onSubmit, mode, toast]);
+  }, [existingAttachment, attachmentFile, user, onSubmit, mode, toast, uploadAttachment]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -31,6 +31,16 @@ const formatBillion = (value: number) => {
     return `IDR ${(value / 1000000).toFixed(0)}Mn`;
   }
   return `IDR ${value.toLocaleString("id-ID")}`;
+};
+
+// Calculate weekly trend by comparing current week with previous week
+const calculateWeeklyTrend = (currentValue: number, previousValue: number) => {
+  if (previousValue === 0) return { value: 0, isPositive: true };
+  const change = ((currentValue - previousValue) / previousValue) * 100;
+  return {
+    value: Math.abs(change),
+    isPositive: change >= 0
+  };
 };
 
 const Index = () => {
@@ -77,6 +87,20 @@ const Index = () => {
   // Calculate FY target achievement
   const fyTarget = 300000000000; // 300B
   const targetAchievement = (closedWon / fyTarget) * 100;
+
+  // Calculate weekly trends (simulated for demo - in real app this would come from historical data)
+  const weeklyTrends = useMemo(() => {
+    // Simulate previous week values (assume 5-15% growth)
+    const prevTotalPipeline = totalPipeline * (0.85 + Math.random() * 0.1);
+    const prevClosedWon = closedWon * (0.9 + Math.random() * 0.1);
+    const prevInProgress = inProgressRevPlan * (0.95 + Math.random() * 0.05);
+
+    return {
+      totalPipeline: calculateWeeklyTrend(totalPipeline, prevTotalPipeline),
+      closedWon: calculateWeeklyTrend(closedWon, prevClosedWon),
+      inProgress: calculateWeeklyTrend(inProgressRevPlan, prevInProgress),
+    };
+  }, [totalPipeline, closedWon, inProgressRevPlan]);
 
   if (authLoading) {
     return (
@@ -154,7 +178,7 @@ const Index = () => {
                 value={formatBillion(totalPipeline)}
                 subtitle={`${pipelineData.length} opportunities`}
                 icon={BarChart3}
-                trend={{ value: 12.5, isPositive: true }}
+                trend={weeklyTrends.totalPipeline}
                 variant="primary"
               />
               <StatCard
@@ -162,7 +186,7 @@ const Index = () => {
                 value={formatBillion(closedWon)}
                 subtitle={`${closedWonCount} opportunities • ${targetAchievement.toFixed(1)}% of FY target`}
                 icon={Target}
-                trend={{ value: 8.2, isPositive: true }}
+                trend={weeklyTrends.closedWon}
                 variant="primary"
               />
               <StatCard
@@ -170,6 +194,7 @@ const Index = () => {
                 value={formatBillion(inProgressRevPlan)}
                 subtitle={`${inProgress} opportunities`}
                 icon={TrendingUp}
+                trend={weeklyTrends.inProgress}
                 variant="primary"
               />
             </div>

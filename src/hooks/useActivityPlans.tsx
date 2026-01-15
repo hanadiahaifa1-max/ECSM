@@ -90,6 +90,8 @@ export function useActivityPlans() {
       });
 
       if (error) throw error;
+      // Immediately refetch to update the UI without refresh
+      fetchActivityPlans();
       return { error: null };
     } catch (err) {
       console.error("Error adding activity plan:", err);
@@ -101,7 +103,7 @@ export function useActivityPlans() {
     try {
       // Build update object dynamically to avoid overwriting with undefined
       const updateData: Record<string, unknown> = {};
-      
+
       if (plan.se_name !== undefined) updateData.se_name = plan.se_name;
       if (plan.account_name !== undefined) updateData.account_name = plan.account_name;
       if (plan.opportunity_name !== undefined) updateData.opportunity_name = plan.opportunity_name;
@@ -123,6 +125,8 @@ export function useActivityPlans() {
         .eq("id", id);
 
       if (error) throw error;
+      // Immediately refetch to update the UI without refresh
+      fetchActivityPlans();
       return { error: null };
     } catch (err) {
       console.error("Error updating activity plan:", err);
