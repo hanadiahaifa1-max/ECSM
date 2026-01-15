@@ -35,17 +35,18 @@ const formatCurrency = (value: number) => {
 // Check if pipeline entry is complete (all key fields filled)
 const isPipelineComplete = (item: PipelineEntry) => {
   return !!(
-    item.opportunityName && 
-    item.accountName && 
-    item.amName && 
-    item.stage && 
+    item.opportunityName &&
+    item.accountName &&
+    item.amName &&
+    item.stage &&
     item.productFamily &&
     item.pilar &&
     item.tower &&
     item.seName &&
     item.presalesLoB &&
     item.closeMonth &&
-    item.contractValue && item.contractValue > 0
+    item.contractValue &&
+    item.contractValue > 0
   );
 };
 
@@ -66,7 +67,8 @@ export function PipelineTable({ data }: PipelineTableProps) {
 
       const matchesStage = stageFilter === "all" || item.stage === stageFilter;
       const matchesPilar = pilarFilter === "all" || item.pilar === pilarFilter;
-      const matchesCompletion = completionFilter === "all" || 
+      const matchesCompletion =
+        completionFilter === "all" ||
         (completionFilter === "complete" && isPipelineComplete(item)) ||
         (completionFilter === "incomplete" && !isPipelineComplete(item));
 

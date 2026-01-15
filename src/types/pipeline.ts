@@ -170,6 +170,17 @@ export const PRESALES_LOBS = [
 
 export const TELKOM_SI_OPTIONS = ["Telkom", "SI"];
 
+export const TELKOM_NAMES = [
+  "Dicky Nurachman",
+  "Hasudungan Irwan",
+  "Win Aufa Fidhuha",
+  "Diatri Nimas Arum",
+  "Grahito Amerto",
+  "Ronald Sambira",
+  "Mariance Sibuea",
+  "Iwan Prasetyo"
+];
+
 export const AM_NAMES = [
   "Abdul Halim",
   "Achmad Syafrian",
@@ -375,12 +386,14 @@ export interface PipelineEntry {
   revPlan: RevPlan;
   telkomSI: string;
   siName: string | null;
+  telkomName?: string | null;
   bespokeProject: boolean;
   projectId: string | null;
   poReleaseDate: string | null;
   poReleaseNumber: string | null;
   attachmentUrl: string | null;
   userId?: string;
+  otcEntries?: Array<{ closeMonth: string; amount: number }>;
 }
 
 export interface DashboardStats {

@@ -32,6 +32,7 @@ interface DbPipelineEntry {
   presales_lob?: string | null;
   telkom_si?: string | null;
   si_name?: string | null;
+  telkom_name?: string | null;
   bespoke_project?: boolean | null;
   project_id?: string | null;
   po_release?: string | null;
@@ -48,6 +49,7 @@ const mapDbToEntry = (item: DbPipelineEntry, index: number): PipelineEntry => ({
   userId: item.user_id,
   telkomSI: item.telkom_si || "Telkom",
   siName: item.si_name || null,
+  telkomName: item.telkom_name || null,
   accountName: item.account_name,
   opportunityName: item.opportunity_name,
   stage: item.stage as Stage,
@@ -73,12 +75,62 @@ const mapDbToEntry = (item: DbPipelineEntry, index: number): PipelineEntry => ({
     oct: Number(item.oct_plan),
     nov: Number(item.nov_plan),
     dec: Number(item.dec_plan),
+    // Extended years 2-5
+    jan_y2: Number((item as any).jan_y2 || 0),
+    feb_y2: Number((item as any).feb_y2 || 0),
+    mar_y2: Number((item as any).mar_y2 || 0),
+    apr_y2: Number((item as any).apr_y2 || 0),
+    may_y2: Number((item as any).may_y2 || 0),
+    jun_y2: Number((item as any).jun_y2 || 0),
+    jul_y2: Number((item as any).jul_y2 || 0),
+    aug_y2: Number((item as any).aug_y2 || 0),
+    sep_y2: Number((item as any).sep_y2 || 0),
+    oct_y2: Number((item as any).oct_y2 || 0),
+    nov_y2: Number((item as any).nov_y2 || 0),
+    dec_y2: Number((item as any).dec_y2 || 0),
+    jan_y3: Number((item as any).jan_y3 || 0),
+    feb_y3: Number((item as any).feb_y3 || 0),
+    mar_y3: Number((item as any).mar_y3 || 0),
+    apr_y3: Number((item as any).apr_y3 || 0),
+    may_y3: Number((item as any).may_y3 || 0),
+    jun_y3: Number((item as any).jun_y3 || 0),
+    jul_y3: Number((item as any).jul_y3 || 0),
+    aug_y3: Number((item as any).aug_y3 || 0),
+    sep_y3: Number((item as any).sep_y3 || 0),
+    oct_y3: Number((item as any).oct_y3 || 0),
+    nov_y3: Number((item as any).nov_y3 || 0),
+    dec_y3: Number((item as any).dec_y3 || 0),
+    jan_y4: Number((item as any).jan_y4 || 0),
+    feb_y4: Number((item as any).feb_y4 || 0),
+    mar_y4: Number((item as any).mar_y4 || 0),
+    apr_y4: Number((item as any).apr_y4 || 0),
+    may_y4: Number((item as any).may_y4 || 0),
+    jun_y4: Number((item as any).jun_y4 || 0),
+    jul_y4: Number((item as any).jul_y4 || 0),
+    aug_y4: Number((item as any).aug_y4 || 0),
+    sep_y4: Number((item as any).sep_y4 || 0),
+    oct_y4: Number((item as any).oct_y4 || 0),
+    nov_y4: Number((item as any).nov_y4 || 0),
+    dec_y4: Number((item as any).dec_y4 || 0),
+    jan_y5: Number((item as any).jan_y5 || 0),
+    feb_y5: Number((item as any).feb_y5 || 0),
+    mar_y5: Number((item as any).mar_y5 || 0),
+    apr_y5: Number((item as any).apr_y5 || 0),
+    may_y5: Number((item as any).may_y5 || 0),
+    jun_y5: Number((item as any).jun_y5 || 0),
+    jul_y5: Number((item as any).jul_y5 || 0),
+    aug_y5: Number((item as any).aug_y5 || 0),
+    sep_y5: Number((item as any).sep_y5 || 0),
+    oct_y5: Number((item as any).oct_y5 || 0),
+    nov_y5: Number((item as any).nov_y5 || 0),
+    dec_y5: Number((item as any).dec_y5 || 0),
   },
   bespokeProject: item.bespoke_project || false,
   projectId: item.project_id || null,
   poReleaseDate: item.po_release_date || item.po_release || null,
   poReleaseNumber: item.po_month || null,
   attachmentUrl: item.attachment_url || null,
+  otcEntries: (item as any).otc_entries || [],
 });
 
 export function usePipeline() {
@@ -199,6 +251,7 @@ export function usePipeline() {
     if (entry.contractValue !== undefined) updateData.contract_value = entry.contractValue;
     if (entry.telkomSI !== undefined) updateData.telkom_si = entry.telkomSI;
     if (entry.siName !== undefined) updateData.si_name = entry.siName;
+    if (entry.telkomName !== undefined) updateData.telkom_name = entry.telkomName;
     if (entry.bespokeProject !== undefined) updateData.bespoke_project = entry.bespokeProject;
     if (entry.projectId !== undefined) updateData.project_id = entry.projectId;
     if (entry.poReleaseDate !== undefined) {
@@ -207,6 +260,8 @@ export function usePipeline() {
     }
     if (entry.poReleaseNumber !== undefined) updateData.po_month = entry.poReleaseNumber;
     if (entry.attachmentUrl !== undefined) updateData.attachment_url = entry.attachmentUrl;
+
+    // Handle extended revenue plan (years 2-5)
     if (entry.revPlan) {
       if (entry.revPlan.jan !== undefined) updateData.jan_plan = entry.revPlan.jan;
       if (entry.revPlan.feb !== undefined) updateData.feb_plan = entry.revPlan.feb;
@@ -220,6 +275,65 @@ export function usePipeline() {
       if (entry.revPlan.oct !== undefined) updateData.oct_plan = entry.revPlan.oct;
       if (entry.revPlan.nov !== undefined) updateData.nov_plan = entry.revPlan.nov;
       if (entry.revPlan.dec !== undefined) updateData.dec_plan = entry.revPlan.dec;
+
+      // Extended fields for years 2-5
+      const extendedEntry = entry as any;
+      if (extendedEntry.revPlan?.jan_y2 !== undefined) updateData.jan_y2 = extendedEntry.revPlan.jan_y2;
+      if (extendedEntry.revPlan?.feb_y2 !== undefined) updateData.feb_y2 = extendedEntry.revPlan.feb_y2;
+      if (extendedEntry.revPlan?.mar_y2 !== undefined) updateData.mar_y2 = extendedEntry.revPlan.mar_y2;
+      if (extendedEntry.revPlan?.apr_y2 !== undefined) updateData.apr_y2 = extendedEntry.revPlan.apr_y2;
+      if (extendedEntry.revPlan?.may_y2 !== undefined) updateData.may_y2 = extendedEntry.revPlan.may_y2;
+      if (extendedEntry.revPlan?.jun_y2 !== undefined) updateData.jun_y2 = extendedEntry.revPlan.jun_y2;
+      if (extendedEntry.revPlan?.jul_y2 !== undefined) updateData.jul_y2 = extendedEntry.revPlan.jul_y2;
+      if (extendedEntry.revPlan?.aug_y2 !== undefined) updateData.aug_y2 = extendedEntry.revPlan.aug_y2;
+      if (extendedEntry.revPlan?.sep_y2 !== undefined) updateData.sep_y2 = extendedEntry.revPlan.sep_y2;
+      if (extendedEntry.revPlan?.oct_y2 !== undefined) updateData.oct_y2 = extendedEntry.revPlan.oct_y2;
+      if (extendedEntry.revPlan?.nov_y2 !== undefined) updateData.nov_y2 = extendedEntry.revPlan.nov_y2;
+      if (extendedEntry.revPlan?.dec_y2 !== undefined) updateData.dec_y2 = extendedEntry.revPlan.dec_y2;
+
+      if (extendedEntry.revPlan?.jan_y3 !== undefined) updateData.jan_y3 = extendedEntry.revPlan.jan_y3;
+      if (extendedEntry.revPlan?.feb_y3 !== undefined) updateData.feb_y3 = extendedEntry.revPlan.feb_y3;
+      if (extendedEntry.revPlan?.mar_y3 !== undefined) updateData.mar_y3 = extendedEntry.revPlan.mar_y3;
+      if (extendedEntry.revPlan?.apr_y3 !== undefined) updateData.apr_y3 = extendedEntry.revPlan.apr_y3;
+      if (extendedEntry.revPlan?.may_y3 !== undefined) updateData.may_y3 = extendedEntry.revPlan.may_y3;
+      if (extendedEntry.revPlan?.jun_y3 !== undefined) updateData.jun_y3 = extendedEntry.revPlan.jun_y3;
+      if (extendedEntry.revPlan?.jul_y3 !== undefined) updateData.jul_y3 = extendedEntry.revPlan.jul_y3;
+      if (extendedEntry.revPlan?.aug_y3 !== undefined) updateData.aug_y3 = extendedEntry.revPlan.aug_y3;
+      if (extendedEntry.revPlan?.sep_y3 !== undefined) updateData.sep_y3 = extendedEntry.revPlan.sep_y3;
+      if (extendedEntry.revPlan?.oct_y3 !== undefined) updateData.oct_y3 = extendedEntry.revPlan.oct_y3;
+      if (extendedEntry.revPlan?.nov_y3 !== undefined) updateData.nov_y3 = extendedEntry.revPlan.nov_y3;
+      if (extendedEntry.revPlan?.dec_y3 !== undefined) updateData.dec_y3 = extendedEntry.revPlan.dec_y3;
+
+      if (extendedEntry.revPlan?.jan_y4 !== undefined) updateData.jan_y4 = extendedEntry.revPlan.jan_y4;
+      if (extendedEntry.revPlan?.feb_y4 !== undefined) updateData.feb_y4 = extendedEntry.revPlan.feb_y4;
+      if (extendedEntry.revPlan?.mar_y4 !== undefined) updateData.mar_y4 = extendedEntry.revPlan.mar_y4;
+      if (extendedEntry.revPlan?.apr_y4 !== undefined) updateData.apr_y4 = extendedEntry.revPlan.apr_y4;
+      if (extendedEntry.revPlan?.may_y4 !== undefined) updateData.may_y4 = extendedEntry.revPlan.may_y4;
+      if (extendedEntry.revPlan?.jun_y4 !== undefined) updateData.jun_y4 = extendedEntry.revPlan.jun_y4;
+      if (extendedEntry.revPlan?.jul_y4 !== undefined) updateData.jul_y4 = extendedEntry.revPlan.jul_y4;
+      if (extendedEntry.revPlan?.aug_y4 !== undefined) updateData.aug_y4 = extendedEntry.revPlan.aug_y4;
+      if (extendedEntry.revPlan?.sep_y4 !== undefined) updateData.sep_y4 = extendedEntry.revPlan.sep_y4;
+      if (extendedEntry.revPlan?.oct_y4 !== undefined) updateData.oct_y4 = extendedEntry.revPlan.oct_y4;
+      if (extendedEntry.revPlan?.nov_y4 !== undefined) updateData.nov_y4 = extendedEntry.revPlan.nov_y4;
+      if (extendedEntry.revPlan?.dec_y4 !== undefined) updateData.dec_y4 = extendedEntry.revPlan.dec_y4;
+
+      if (extendedEntry.revPlan?.jan_y5 !== undefined) updateData.jan_y5 = extendedEntry.revPlan.jan_y5;
+      if (extendedEntry.revPlan?.feb_y5 !== undefined) updateData.feb_y5 = extendedEntry.revPlan.feb_y5;
+      if (extendedEntry.revPlan?.mar_y5 !== undefined) updateData.mar_y5 = extendedEntry.revPlan.mar_y5;
+      if (extendedEntry.revPlan?.apr_y5 !== undefined) updateData.apr_y5 = extendedEntry.revPlan.apr_y5;
+      if (extendedEntry.revPlan?.may_y5 !== undefined) updateData.may_y5 = extendedEntry.revPlan.may_y5;
+      if (extendedEntry.revPlan?.jun_y5 !== undefined) updateData.jun_y5 = extendedEntry.revPlan.jun_y5;
+      if (extendedEntry.revPlan?.jul_y5 !== undefined) updateData.jul_y5 = extendedEntry.revPlan.jul_y5;
+      if (extendedEntry.revPlan?.aug_y5 !== undefined) updateData.aug_y5 = extendedEntry.revPlan.aug_y5;
+      if (extendedEntry.revPlan?.sep_y5 !== undefined) updateData.sep_y5 = extendedEntry.revPlan.sep_y5;
+      if (extendedEntry.revPlan?.oct_y5 !== undefined) updateData.oct_y5 = extendedEntry.revPlan.oct_y5;
+      if (extendedEntry.revPlan?.nov_y5 !== undefined) updateData.nov_y5 = extendedEntry.revPlan.nov_y5;
+      if (extendedEntry.revPlan?.dec_y5 !== undefined) updateData.dec_y5 = extendedEntry.revPlan.dec_y5;
+    }
+
+    // Handle OTC entries
+    if ((entry as any).otcEntries !== undefined) {
+      updateData.otc_entries = (entry as any).otcEntries;
     }
 
     const { error } = await supabase.from("pipeline_entries").update(updateData).eq("id", id);

@@ -1,10 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { StageChart } from "@/components/dashboard/StageChart";
 import { LoBChart } from "@/components/dashboard/LoBChart";
+import { PilarChart } from "@/components/dashboard/PilarChart";
+import { ProductFamilyChart } from "@/components/dashboard/ProductFamilyChart";
 import { PipelineTableView } from "@/components/pipeline/PipelineTableView";
 import { useAuth } from "@/hooks/useAuth";
 import { usePipeline } from "@/hooks/usePipeline";
@@ -22,6 +24,14 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatBillion = (value: number) => {
   if (value >= 1000000000) {
@@ -48,7 +58,8 @@ const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { entries, loading: pipelineLoading, addEntry, updateEntry, deleteEntry } = usePipeline();
-  const { lobData } = useLoBDistribution();
+  const { lobData: rawLobData } = useLoBDistribution();
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -59,24 +70,80 @@ const Index = () => {
   // Use database entries if available, otherwise fallback to mock data
   const pipelineData = entries.length > 0 ? entries : mockPipelineData;
 
-  const stageData = getTotalByStage(pipelineData);
-  const monthlyData = getMonthlyRevenue(pipelineData);
+  // Filter data by selected month
+  const filteredPipelineData = useMemo(() => {
+    if (selectedMonth === "all") return pipelineData;
+    return pipelineData.filter((d) => {
+      const plan = d.revPlan;
+      const monthKey = selectedMonth.toLowerCase() as keyof typeof plan;
+      return plan[monthKey] > 0;
+    });
+  }, [pipelineData, selectedMonth]);
+
+  const stageData = getTotalByStage(filteredPipelineData);
+  const monthlyData = getMonthlyRevenue(filteredPipelineData);
+
+  // Calculate pilar distribution
+  const pilarData = Object.entries(filteredPipelineData.reduce((acc: { [key: string]: { value: number; count: number } }, d) => {
+    const pilar = d.pilar || "Other";
+    const plan = d.revPlan;
+    const yearlyPlan = plan.jan + plan.feb + plan.mar + plan.apr + plan.may + plan.jun +
+                       plan.jul + plan.aug + plan.sep + plan.oct + plan.nov + plan.dec;
+    if (!acc[pilar]) {
+      acc[pilar] = { value: 0, count: 0 };
+    }
+    acc[pilar].value += yearlyPlan;
+    acc[pilar].count += 1;
+    return acc;
+  }, {})).map(([name, data]) => ({
+    name,
+    value: data.value,
+    count: data.count
+  }));
+
+  // Calculate product family distribution
+  const productFamilyData = Object.entries(filteredPipelineData.reduce((acc: { [key: string]: { value: number; count: number } }, d) => {
+    const family = d.productFamily || "Other";
+    const plan = d.revPlan;
+    const yearlyPlan = plan.jan + plan.feb + plan.mar + plan.apr + plan.may + plan.jun +
+                       plan.jul + plan.aug + plan.sep + plan.oct + plan.nov + plan.dec;
+    if (!acc[family]) {
+      acc[family] = { value: 0, count: 0 };
+    }
+    acc[family].value += yearlyPlan;
+    acc[family].count += 1;
+    return acc;
+  }, {})).map(([name, data]) => ({
+    name,
+    value: data.value,
+    count: data.count
+  }));
+
+  // Filter LoB data based on selected month
+  const lobData = useMemo(() => {
+    if (selectedMonth === "all") return rawLobData;
+    return rawLobData.filter((item) => {
+      // For month filtering, we need to check if there are opportunities for this LoB in the selected month
+      const opportunitiesForLob = filteredPipelineData.filter((d) => d.presalesLoB === item.name);
+      return opportunitiesForLob.length > 0;
+    });
+  }, [rawLobData, filteredPipelineData, selectedMonth]);
 
   // Calculate stats - Total revenue plan for this year (sum of all monthly plans)
-  const totalPipeline = pipelineData.reduce((sum, d) => {
+  const totalPipeline = filteredPipelineData.reduce((sum, d) => {
     const plan = d.revPlan;
     const yearlyPlan = plan.jan + plan.feb + plan.mar + plan.apr + plan.may + plan.jun +
                        plan.jul + plan.aug + plan.sep + plan.oct + plan.nov + plan.dec;
     return sum + yearlyPlan;
   }, 0);
-  const closedWonEntries = pipelineData.filter((d) => d.stage === "Closed Won");
+  const closedWonEntries = filteredPipelineData.filter((d) => d.stage === "Closed Won");
   const closedWonCount = closedWonEntries.length;
   const closedWon = closedWonEntries.reduce((sum, d) => {
     const plan = d.revPlan;
     return sum + plan.jan + plan.feb + plan.mar + plan.apr + plan.may + plan.jun +
            plan.jul + plan.aug + plan.sep + plan.oct + plan.nov + plan.dec;
   }, 0);
-  const inProgressEntries = pipelineData.filter((d) => !["Closed Won", "Closed Lost"].includes(d.stage));
+  const inProgressEntries = filteredPipelineData.filter((d) => !["Closed Won", "Closed Lost"].includes(d.stage));
   const inProgress = inProgressEntries.length;
   const inProgressRevPlan = inProgressEntries.reduce((sum, d) => {
     const plan = d.revPlan;
@@ -205,49 +272,80 @@ const Index = () => {
               <StageChart data={stageData} />
             </div>
 
-            {/* LoB Distribution */}
+            {/* Month Filter */}
+            <div className="mb-6 flex items-center gap-4">
+              <Label htmlFor="month-filter" className="text-sm font-medium">
+                Filter by Month:
+              </Label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Months</SelectItem>
+                  <SelectItem value="jan">January</SelectItem>
+                  <SelectItem value="feb">February</SelectItem>
+                  <SelectItem value="mar">March</SelectItem>
+                  <SelectItem value="apr">April</SelectItem>
+                  <SelectItem value="may">May</SelectItem>
+                  <SelectItem value="jun">June</SelectItem>
+                  <SelectItem value="jul">July</SelectItem>
+                  <SelectItem value="aug">August</SelectItem>
+                  <SelectItem value="sep">September</SelectItem>
+                  <SelectItem value="oct">October</SelectItem>
+                  <SelectItem value="nov">November</SelectItem>
+                  <SelectItem value="dec">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Pie Charts Row - LoB, Pilar, Product Family */}
             <div className="mb-8 grid gap-6 lg:grid-cols-3">
               <LoBChart data={lobData} />
-              <div className="lg:col-span-2">
-                <div className="glass-card rounded-xl p-6 animate-slide-up h-full">
-                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                    <Users className="h-5 w-5 text-primary" />
-                    Team Performance
-                  </h3>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {Array.from(new Set(pipelineData.map((d) => d.seName).filter((n): n is string => !!n))).map(
-                      (name) => {
-                        const deals = pipelineData.filter((d) => d.seName === name);
-                        const total = deals.reduce((sum, d) => sum + d.contractValue, 0);
-                        const progress = totalPipeline > 0 ? (total / totalPipeline) * 100 : 0;
+              {pilarData.length > 0 && <PilarChart data={pilarData} />}
+              {productFamilyData.length > 0 && <ProductFamilyChart data={productFamilyData} />}
+            </div>
 
-                        return (
-                          <div key={name} className="rounded-lg bg-muted/50 p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">{name}</span>
-                              <span className="text-sm text-muted-foreground">{deals.length} deals</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className="h-full rounded-full gradient-primary transition-all duration-500"
-                                  style={{ width: `${progress}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-semibold text-primary">{formatBillion(total)}</span>
-                            </div>
+            {/* Team Performance */}
+            <div className="mb-8">
+              <div className="glass-card rounded-xl p-6 animate-slide-up">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                  <Users className="h-5 w-5 text-primary" />
+                  Team Performance
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from(new Set(filteredPipelineData.map((d) => d.seName).filter((n): n is string => !!n))).map(
+                    (name) => {
+                      const deals = filteredPipelineData.filter((d) => d.seName === name);
+                      const total = deals.reduce((sum, d) => sum + d.contractValue, 0);
+                      const progress = totalPipeline > 0 ? (total / totalPipeline) * 100 : 0;
+
+                      return (
+                        <div key={name} className="rounded-lg bg-muted/50 p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">{name}</span>
+                            <span className="text-sm text-muted-foreground">{deals.length} deals</span>
                           </div>
-                        );
-                      },
-                    )}
-                  </div>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full gradient-primary transition-all duration-500"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-semibold text-primary">{formatBillion(total)}</span>
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Pipeline Table with Form */}
             <PipelineTableView
-              data={pipelineData}
+              data={filteredPipelineData}
               loading={false}
               onAdd={addEntry}
               onUpdate={updateEntry}

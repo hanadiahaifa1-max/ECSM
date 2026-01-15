@@ -49,7 +49,7 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, variant = 
           {trend && (
             <div className="flex items-center gap-1 text-sm">
               <span className={trend.isPositive ? "text-success" : "text-destructive"}>
-                {trend.isPositive ? "+" : "-"}{Math.abs(trend.value).toFixed(1)}%
+                {trend.isPositive ? "↑" : "↓"}{Math.abs(trend.value).toFixed(1)}%
               </span>
               <span className={variant === "default" ? "text-muted-foreground" : "opacity-70"}>vs last week</span>
             </div>

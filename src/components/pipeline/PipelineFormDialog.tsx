@@ -27,6 +27,7 @@ import {
   TOWERS,
   PRESALES_LOBS,
   TELKOM_SI_OPTIONS,
+  TELKOM_NAMES,
   AM_NAMES,
   PRODUCT_FAMILY_MAPPING,
   calculateRevenueSummary,
@@ -127,11 +128,23 @@ const formSchema = z.object({
   dec_y5: z.coerce.number().min(0).default(0),
   telkomSI: z.string().min(1, "Telkom/SI is required").default("Telkom"),
   siName: z.string().max(100).optional(),
+  telkomName: z.string().max(100).optional(),
   bespokeProject: z.boolean().default(false),
   projectId: z.string().max(50).optional(),
   poReleaseDate: z.date().optional().nullable(),
   attachmentFile: z.instanceof(File).optional(),
-});
+}).refine((data) => {
+  if (data.telkomSI === "Telkom" && (!data.telkomName || data.telkomName.trim() === "")) {
+    return false;
+  }
+  if (data.telkomSI === "SI" && (!data.siName || data.siName.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Telkom Name is required when Telkom/SI is Telkom, SI Name is required when Telkom/SI is SI",
+  path: ["telkomName"],
+})
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -394,6 +407,10 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
 
   useEffect(() => {
     if (entry && open) {
+      // For editing, we need to preserve all existing data
+      // Check if entry has extended properties (for backward compatibility)
+      const extendedEntry = entry as any;
+
       form.reset({
         accountName: entry.accountName,
         opportunityName: entry.opportunityName,
@@ -407,6 +424,8 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
         closeMonth: entry.closeMonth || "",
         contractPeriod: String(entry.contractPeriod || 12),
         contractValue: entry.contractValue,
+        monthlyAmount: 0, // Will be calculated from revenue plan
+        otcEntries: extendedEntry.otcEntries || extendedEntry.otc_entries || [], // Preserve OTC entries if they exist
         jan: entry.revPlan.jan,
         feb: entry.revPlan.feb,
         mar: entry.revPlan.mar,
@@ -419,8 +438,58 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
         oct: entry.revPlan.oct,
         nov: entry.revPlan.nov,
         dec: entry.revPlan.dec,
+        // Year 2-5 - check if extended entry has these fields
+        jan_y2: extendedEntry.revPlan?.jan_y2 || 0,
+        feb_y2: extendedEntry.revPlan?.feb_y2 || 0,
+        mar_y2: extendedEntry.revPlan?.mar_y2 || 0,
+        apr_y2: extendedEntry.revPlan?.apr_y2 || 0,
+        may_y2: extendedEntry.revPlan?.may_y2 || 0,
+        jun_y2: extendedEntry.revPlan?.jun_y2 || 0,
+        jul_y2: extendedEntry.revPlan?.jul_y2 || 0,
+        aug_y2: extendedEntry.revPlan?.aug_y2 || 0,
+        sep_y2: extendedEntry.revPlan?.sep_y2 || 0,
+        oct_y2: extendedEntry.revPlan?.oct_y2 || 0,
+        nov_y2: extendedEntry.revPlan?.nov_y2 || 0,
+        dec_y2: extendedEntry.revPlan?.dec_y2 || 0,
+        jan_y3: extendedEntry.revPlan?.jan_y3 || 0,
+        feb_y3: extendedEntry.revPlan?.feb_y3 || 0,
+        mar_y3: extendedEntry.revPlan?.mar_y3 || 0,
+        apr_y3: extendedEntry.revPlan?.apr_y3 || 0,
+        may_y3: extendedEntry.revPlan?.may_y3 || 0,
+        jun_y3: extendedEntry.revPlan?.jun_y3 || 0,
+        jul_y3: extendedEntry.revPlan?.jul_y3 || 0,
+        aug_y3: extendedEntry.revPlan?.aug_y3 || 0,
+        sep_y3: extendedEntry.revPlan?.sep_y3 || 0,
+        oct_y3: extendedEntry.revPlan?.oct_y3 || 0,
+        nov_y3: extendedEntry.revPlan?.nov_y3 || 0,
+        dec_y3: extendedEntry.revPlan?.dec_y3 || 0,
+        jan_y4: extendedEntry.revPlan?.jan_y4 || 0,
+        feb_y4: extendedEntry.revPlan?.feb_y4 || 0,
+        mar_y4: extendedEntry.revPlan?.mar_y4 || 0,
+        apr_y4: extendedEntry.revPlan?.apr_y4 || 0,
+        may_y4: extendedEntry.revPlan?.may_y4 || 0,
+        jun_y4: extendedEntry.revPlan?.jun_y4 || 0,
+        jul_y4: extendedEntry.revPlan?.jul_y4 || 0,
+        aug_y4: extendedEntry.revPlan?.aug_y4 || 0,
+        sep_y4: extendedEntry.revPlan?.sep_y4 || 0,
+        oct_y4: extendedEntry.revPlan?.oct_y4 || 0,
+        nov_y4: extendedEntry.revPlan?.nov_y4 || 0,
+        dec_y4: extendedEntry.revPlan?.dec_y4 || 0,
+        jan_y5: extendedEntry.revPlan?.jan_y5 || 0,
+        feb_y5: extendedEntry.revPlan?.feb_y5 || 0,
+        mar_y5: extendedEntry.revPlan?.mar_y5 || 0,
+        apr_y5: extendedEntry.revPlan?.apr_y5 || 0,
+        may_y5: extendedEntry.revPlan?.may_y5 || 0,
+        jun_y5: extendedEntry.revPlan?.jun_y5 || 0,
+        jul_y5: extendedEntry.revPlan?.jul_y5 || 0,
+        aug_y5: extendedEntry.revPlan?.aug_y5 || 0,
+        sep_y5: extendedEntry.revPlan?.sep_y5 || 0,
+        oct_y5: extendedEntry.revPlan?.oct_y5 || 0,
+        nov_y5: extendedEntry.revPlan?.nov_y5 || 0,
+        dec_y5: extendedEntry.revPlan?.dec_y5 || 0,
         telkomSI: entry.telkomSI || "Telkom",
         siName: entry.siName || "",
+        telkomName: extendedEntry.telkomName || "",
         bespokeProject: entry.bespokeProject || false,
         projectId: entry.projectId || "",
         poReleaseDate: entry.poReleaseDate ? new Date(entry.poReleaseDate) : null,
@@ -669,14 +738,66 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
           oct: data.oct,
           nov: data.nov,
           dec: data.dec,
+          // Extended years 2-5
+          jan_y2: data.jan_y2,
+          feb_y2: data.feb_y2,
+          mar_y2: data.mar_y2,
+          apr_y2: data.apr_y2,
+          may_y2: data.may_y2,
+          jun_y2: data.jun_y2,
+          jul_y2: data.jul_y2,
+          aug_y2: data.aug_y2,
+          sep_y2: data.sep_y2,
+          oct_y2: data.oct_y2,
+          nov_y2: data.nov_y2,
+          dec_y2: data.dec_y2,
+          jan_y3: data.jan_y3,
+          feb_y3: data.feb_y3,
+          mar_y3: data.mar_y3,
+          apr_y3: data.apr_y3,
+          may_y3: data.may_y3,
+          jun_y3: data.jun_y3,
+          jul_y3: data.jul_y3,
+          aug_y3: data.aug_y3,
+          sep_y3: data.sep_y3,
+          oct_y3: data.oct_y3,
+          nov_y3: data.nov_y3,
+          dec_y3: data.dec_y3,
+          jan_y4: data.jan_y4,
+          feb_y4: data.feb_y4,
+          mar_y4: data.mar_y4,
+          apr_y4: data.apr_y4,
+          may_y4: data.may_y4,
+          jun_y4: data.jun_y4,
+          jul_y4: data.jul_y4,
+          aug_y4: data.aug_y4,
+          sep_y4: data.sep_y4,
+          oct_y4: data.oct_y4,
+          nov_y4: data.nov_y4,
+          dec_y4: data.dec_y4,
+          jan_y5: data.jan_y5,
+          feb_y5: data.feb_y5,
+          mar_y5: data.mar_y5,
+          apr_y5: data.apr_y5,
+          may_y5: data.may_y5,
+          jun_y5: data.jun_y5,
+          jul_y5: data.jul_y5,
+          aug_y5: data.aug_y5,
+          sep_y5: data.sep_y5,
+          oct_y5: data.oct_y5,
+          nov_y5: data.nov_y5,
+          dec_y5: data.dec_y5,
         },
         telkomSI: data.telkomSI,
         siName: data.telkomSI === "SI" ? data.siName : null,
+        telkomName: data.telkomSI === "Telkom" ? data.telkomName : null,
         bespokeProject: data.bespokeProject,
         projectId: data.projectId || null,
         poReleaseDate: data.poReleaseDate ? format(data.poReleaseDate, "yyyy-MM-dd") : null,
         poReleaseNumber: null,
         attachmentUrl: null,
+        // Include OTC entries for update
+        otcEntries: data.otcEntries,
       };
 
       let result;
@@ -1181,10 +1302,36 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
                     name="siName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>SI Name</FormLabel>
+                        <FormLabel>SI Name *</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter SI name" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {form.watch("telkomSI") === "Telkom" && (
+                  <FormField
+                    control={form.control}
+                    name="telkomName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telkom Name *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Telkom name" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TELKOM_NAMES.map((name) => (
+                              <SelectItem key={name} value={name}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
