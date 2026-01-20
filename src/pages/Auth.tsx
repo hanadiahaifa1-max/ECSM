@@ -127,11 +127,11 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary">
-            <span className="text-2xl font-bold text-primary-foreground">E</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
+            <img src="/Telkomsel.ico" alt="Telkomsel Logo" className="h-20 w-25" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">ECSM Pipeline</h1>
-          <p className="text-muted-foreground">Tracking Dashboard FY-2026</p>
+          <p className="text-muted-foreground">Tracking Dashboard</p>
         </div>
 
         <Card className="glass-card">
@@ -186,7 +186,7 @@ export default function Auth() {
                     <Input
                       id="register-name"
                       type="text"
-                      placeholder="John Doe"
+                      placeholder="Your Name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       disabled={loading}

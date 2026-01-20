@@ -381,7 +381,7 @@ export interface PipelineEntry {
   presalesLoB: string;
   amName: string;
   closeMonth: string;
-  contractPeriod: number | "OTC";
+  contractPeriod: number | "OTC"; 
   contractValue: number;
   revPlan: RevPlan;
   telkomSI: string;

@@ -184,6 +184,7 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
   const [productFamilyOpen, setProductFamilyOpen] = useState(false);
   const [amNameOpen, setAmNameOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState("1");
+  const [originalMonthlyAmount, setOriginalMonthlyAmount] = useState<number | null>(null);
   const isEditing = !!entry;
   const { user } = useAuth();
   const { userLoB } = useUserProfile();
@@ -411,6 +412,20 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
       // Check if entry has extended properties (for backward compatibility)
       const extendedEntry = entry as any;
 
+      // Calculate existing monthly amount from revenue plan and contract period if not already set
+      let preservedMonthlyAmount = extendedEntry.monthlyAmount || 0;
+      
+      // If no explicit monthly amount is stored, try to calculate it from the contract
+      if (preservedMonthlyAmount === 0 && entry.contractValue && entry.contractPeriod && entry.contractPeriod !== "OTC") {
+        const period = typeof entry.contractPeriod === "number" ? entry.contractPeriod : parseInt(String(entry.contractPeriod));
+        if (period > 0) {
+          preservedMonthlyAmount = Math.floor(entry.contractValue / period);
+        }
+      }
+      
+      // Store the original monthly amount to preserve it on updates
+      setOriginalMonthlyAmount(preservedMonthlyAmount);
+
       form.reset({
         accountName: entry.accountName,
         opportunityName: entry.opportunityName,
@@ -424,7 +439,7 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
         closeMonth: entry.closeMonth || "",
         contractPeriod: String(entry.contractPeriod || 12),
         contractValue: entry.contractValue,
-        monthlyAmount: 0, // Will be calculated from revenue plan
+        monthlyAmount: preservedMonthlyAmount, // Preserve existing monthly amount
         otcEntries: extendedEntry.otcEntries || extendedEntry.otc_entries || [], // Preserve OTC entries if they exist
         jan: entry.revPlan.jan,
         feb: entry.revPlan.feb,
@@ -496,6 +511,13 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
       });
     }
   }, [entry, open, form, user, userLoB]);
+
+  useEffect(() => {
+    if (!open) {
+      // Reset state when dialog closes
+      setOriginalMonthlyAmount(null);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open && !isEditing && user) {
@@ -712,6 +734,13 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
+      // For updates, preserve monthly_value if it wasn't explicitly changed
+      // Only use the form value if user explicitly modified it (different from original)
+      const monthlyAmountToUse = 
+        isEditing && originalMonthlyAmount !== null && data.monthlyAmount === originalMonthlyAmount
+          ? originalMonthlyAmount  // Keep the original value if unchanged
+          : data.monthlyAmount;     // Use the form value if explicitly changed
+
       const entryData = {
         accountName: data.accountName,
         opportunityName: data.opportunityName,
@@ -798,6 +827,7 @@ export function PipelineFormDialog({ entry, onSave, onUpdate }: PipelineFormDial
         attachmentUrl: null,
         // Include OTC entries for update
         otcEntries: data.otcEntries,
+        // monthlyAmount: data.monthlyAmount,
       };
 
       let result;

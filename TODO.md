@@ -1,0 +1,1 @@
+- [x] Ensure all different values in PilarChart have unique colors, no duplicates

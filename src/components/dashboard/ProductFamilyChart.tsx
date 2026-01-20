@@ -11,7 +11,30 @@ interface ProductFamilyChartProps {
   }>;
 }
 
-const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--chart-6))"];
+const COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-6))",
+  "#fd773e",
+  "#4ECDC4",
+  "#FFE66D",
+  "#95E1D3",
+  "#C7CEEA",
+  "#FF8C42",
+  "#2E86AB",
+  "#A23B72",
+  "#F18F01",
+  "#C73E1D",
+  "#6A994E",
+  "#BC4749",
+  "#FF006E",
+  "#00D9FF",
+  "#FFB703",
+  "#FB5607"
+];
 
 const formatBillion = (value: number) => {
   if (value >= 1000000000) {
