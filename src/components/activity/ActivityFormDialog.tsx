@@ -146,7 +146,7 @@ export function ActivityFormDialog({
   }, [mode, activityPlan, open, profile?.full_name, form]);
 
   // Auto-fill account, opportunity, AM name, close month, and contract value when selecting existing pipeline
-  const autoFillPipeline = useCallback(() => {
+  useEffect(() => {
     if (selectedPipelineId && !createPipeline) {
       const selected = pipelineEntries.find(p => p.id === selectedPipelineId);
       if (selected) {
@@ -158,10 +158,6 @@ export function ActivityFormDialog({
       }
     }
   }, [selectedPipelineId, createPipeline, pipelineEntries, form]);
-
-  useEffect(() => {
-    autoFillPipeline();
-  }, [autoFillPipeline]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
